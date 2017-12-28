@@ -1,0 +1,34 @@
+---
+
+- name: install vsftpd
+  action: command apt-get install vsftpd
+
+- name: uwf allow ftp, open ports
+  action: shell ufw allow 20/tcp && ufw allow 21/tcp && ufw allow 990/tcp && ufw allow 40000:50000/tcp
+
+- name: adduser
+  action: command adduser "{{ user }}"
+
+- name: setpasswd
+  action: shell echo "{{ user }}:{{ password }}" | chpasswd
+
+- name: create ftp dir
+  action: shell mkdir /home/"{{ user }}"/ftp
+
+- name: set user right on ftp dir
+  action: shell chown nobody:nogroup /home/"{{ user }}"/ftp | chmod a-w /home/"{{ user }}"/ftp
+
+- name: create ftp dir for files uploaded by user
+  action: shell mkdir /home/"{{ user }}"/ftp/files
+
+- name: set user right on ftp dir files
+  action: shell chown "{{ user }}":"{{ user }}" /home/"{{ user }}"/ftp/files
+
+- name: replace vsftpd config template
+  template: src='ftp_template.conf' dest='/etc/vsftpd.conf' owner=root group=root mode=0644
+
+- name: add user to ftp userlist
+  action: shell echo "{{ user }}" | tee -a /etc/vsftpd.userlist
+
+- name: restart vsftpd
+  action: command systemctl restart vsftpd
